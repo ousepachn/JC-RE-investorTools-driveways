@@ -82,7 +82,10 @@ export default function Home() {
     );
   }, [searchQuery, showAll, addressData]);
 
-  // Handle result click
+  // Update map reference with proper type
+  const mapRef = useRef<MapRef>(null);
+
+  // Handle result click with proper typing
   const handleResultClick = (address: DrivewayCurbcut) => {
     setSearchQuery(address.address);
     setShowSearchResults(false);
@@ -94,9 +97,6 @@ export default function Home() {
       setPopupInfo(address);
     }
   };
-
-  // Update the map reference with the correct type
-  const mapRef = useRef<MapRef>(null);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">
