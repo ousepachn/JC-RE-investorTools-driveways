@@ -1,5 +1,3 @@
-import { initializeApp, cert, ServiceAccount } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 import * as dotenv from 'dotenv';
 import { adminDb } from '../app/firebase/admin';
 
