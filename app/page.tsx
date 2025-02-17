@@ -17,11 +17,7 @@ interface DrivewayCurbcut {
   coordinates?: [number, number];
 }
 
-const MapComponent = dynamic(() => import('react-map-gl'), {
-  loading: () => <p>Loading map...</p>,
-  ssr: false
-});
-
+// Remove unused MapComponent and only keep what we use
 const Markers = dynamic(() => import('react-map-gl').then((mod) => mod.Marker), {
   ssr: false
 });

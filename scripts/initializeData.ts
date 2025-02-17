@@ -1,6 +1,7 @@
-import { adminDb } from '../app/firebase/admin';
-import { Firestore } from 'firebase-admin/firestore';
+import { initializeApp, cert, ServiceAccount } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import * as dotenv from 'dotenv';
+import { adminDb } from '../app/firebase/admin';
 
 // Load environment variables from .env.local
 dotenv.config({ path: '.env.local' });
