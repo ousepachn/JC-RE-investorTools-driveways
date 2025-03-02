@@ -29,11 +29,6 @@ const PopupComponent = dynamic(() => import('react-map-gl').then((mod) => mod.Po
 // Update the constant at the top level
 const INITIAL_DISPLAY_COUNT = 25;
 
-function getRandomSubset<T>(array: T[], size: number): T[] {
-  const shuffled = [...array].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, size);
-}
-
 export default function Home() {
   const [popupInfo, setPopupInfo] = useState<DrivewayCurbcut | null>(null);
   const [addressData, setAddressData] = useState<DrivewayCurbcut[]>([]);
