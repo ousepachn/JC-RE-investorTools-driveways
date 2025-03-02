@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef } from 'react';
-import { fetchAddressesWithCoordinates } from './firebase/firestore';
+import { fetchInitialAddresses, searchAddresses } from './firebase/firestore';
 import type { MapRef } from 'react-map-gl';
 import { Map as MapGL } from 'react-map-gl';
 
@@ -37,20 +37,20 @@ function getRandomSubset<T>(array: T[], size: number): T[] {
 export default function Home() {
   const [popupInfo, setPopupInfo] = useState<DrivewayCurbcut | null>(null);
   const [addressData, setAddressData] = useState<DrivewayCurbcut[]>([]);
-  const [filteredAddresses, setFilteredAddresses] = useState<DrivewayCurbcut[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
 
+  // Load initial 25 random addresses
   useEffect(() => {
-    async function loadData() {
+    async function loadInitialData() {
       try {
-        const addresses = await fetchAddressesWithCoordinates();
+        const { addresses, total } = await fetchInitialAddresses(INITIAL_DISPLAY_COUNT);
         setAddressData(addresses);
-        // Get random 25 addresses instead of 100
-        setFilteredAddresses(getRandomSubset(addresses, INITIAL_DISPLAY_COUNT));
+        setTotalCount(total);
         setError(null);
       } catch (err) {
         console.error('Error loading addresses:', err);
@@ -59,24 +59,29 @@ export default function Home() {
         setLoading(false);
       }
     }
-    loadData();
+    loadInitialData();
   }, []);
 
-  // Update the filter effect to use random selection when not searching
+  // Handle search and show all
   useEffect(() => {
-    const filtered = addressData.filter(address => 
-      address.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      address.street_name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    
-    // If searching, show all filtered results
-    // If not searching, show random 25 addresses
-    setFilteredAddresses(
-      searchQuery.length > 0 ? filtered : 
-      showAll ? filtered : 
-      getRandomSubset(filtered, INITIAL_DISPLAY_COUNT)
-    );
-  }, [searchQuery, showAll, addressData]);
+    async function handleSearch() {
+      if (!searchQuery && !showAll) return;
+      
+      setLoading(true);
+      try {
+        const addresses = await searchAddresses(searchQuery, showAll);
+        setAddressData(addresses);
+      } catch (err) {
+        console.error('Error searching addresses:', err);
+        setError('Failed to search addresses. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const debounceTimer = setTimeout(handleSearch, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, showAll]);
 
   // Update map reference with proper type
   const mapRef = useRef<MapRef>(null);
@@ -131,8 +136,8 @@ export default function Home() {
             {/* Search Results Dropdown */}
             {showSearchResults && searchQuery.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {filteredAddresses.length > 0 ? (
-                  filteredAddresses.map((address) => (
+                {addressData.length > 0 ? (
+                  addressData.map((address) => (
                     <button
                       key={address.id}
                       onClick={() => handleResultClick(address)}
@@ -162,14 +167,15 @@ export default function Home() {
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
-            <span className="text-sm font-medium text-gray-900">Show All ({addressData.length} addresses)</span>
+            <span className="text-sm font-medium text-gray-900">Show All ({totalCount} addresses)</span>
           </div>
         </div>
         
         {/* Display count of filtered results */}
         <div className="text-center mt-2 text-sm font-medium text-gray-700">
-          Showing {filteredAddresses.length} addresses
+          Showing {addressData.length} addresses
           {searchQuery && ` matching "${searchQuery}"`}
+          {!searchQuery && !showAll && ` (randomly selected from ${totalCount} total)`}
         </div>
       </div>
 
@@ -186,7 +192,7 @@ export default function Home() {
           mapStyle="mapbox://styles/mapbox/streets-v12"
           reuseMaps
         >
-          {filteredAddresses.map((address) => (
+          {addressData.map((address) => (
             <Markers
               key={address.id}
               longitude={address.coordinates?.[0] ?? -74.0776}

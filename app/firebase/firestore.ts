@@ -1,5 +1,5 @@
 import { db } from './config';
-import { collection, addDoc, getDocs, query, where, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, updateDoc, limit, orderBy, startAt, endAt } from 'firebase/firestore';
 import drivewayData from '../data/zoning-driveways-and-carports.json';
 
 export interface DrivewayCurbcut {
@@ -112,6 +112,73 @@ export async function fetchAddressesWithCoordinates(): Promise<DrivewayCurbcut[]
     } as DrivewayCurbcut));
   } catch (error) {
     console.error('Error fetching addresses:', error);
+    return [];
+  }
+}
+
+// Fetch initial random addresses
+export async function fetchInitialAddresses(count: number): Promise<{ addresses: DrivewayCurbcut[], total: number }> {
+  try {
+    // Get total count
+    const snapshot = await getDocs(collection(db, 'addresses'));
+    const total = snapshot.size;
+
+    // Get random starting point
+    const randomIndex = Math.floor(Math.random() * (total - count));
+    
+    // Fetch limited number of addresses
+    const q = query(
+      collection(db, 'addresses'),
+      where('coordinates', '!=', null),
+      orderBy('address'),
+      limit(count)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const addresses = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as DrivewayCurbcut));
+
+    return { addresses, total };
+  } catch (error) {
+    console.error('Error fetching initial addresses:', error);
+    return { addresses: [], total: 0 };
+  }
+}
+
+// Search addresses
+export async function searchAddresses(searchQuery: string, showAll: boolean): Promise<DrivewayCurbcut[]> {
+  try {
+    let q;
+    if (searchQuery) {
+      // Case-insensitive search
+      const searchLower = searchQuery.toLowerCase();
+      const searchUpper = searchQuery.toUpperCase();
+      
+      q = query(
+        collection(db, 'addresses'),
+        where('coordinates', '!=', null),
+        orderBy('address'),
+        startAt(searchLower),
+        endAt(searchUpper + '\uf8ff')
+      );
+    } else if (showAll) {
+      q = query(
+        collection(db, 'addresses'),
+        where('coordinates', '!=', null)
+      );
+    } else {
+      return [];
+    }
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as DrivewayCurbcut));
+  } catch (error) {
+    console.error('Error searching addresses:', error);
     return [];
   }
 } 
