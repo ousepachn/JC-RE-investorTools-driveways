@@ -123,12 +123,11 @@ export async function fetchInitialAddresses(count: number): Promise<{ addresses:
     const snapshot = await getDocs(collection(db, 'addresses'));
     const total = snapshot.size;
     
-    // Fetch limited number of addresses with random ordering
+    // Fetch limited number of addresses
     const q = query(
       collection(db, 'addresses'),
       where('coordinates', '!=', null),
-      // Use a random field for ordering to get random results
-      orderBy('address'),
+      orderBy('address'),  // Simple ordering for now
       limit(count)
     );
     
