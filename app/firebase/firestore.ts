@@ -1,5 +1,5 @@
 import { db } from './config';
-import { collection, addDoc, getDocs, query, where, updateDoc, limit, orderBy, startAt, endAt } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, updateDoc, limit, orderBy, startAt, endAt, getCountFromServer } from 'firebase/firestore';
 import drivewayData from '../data/zoning-driveways-and-carports.json';
 
 export interface DrivewayCurbcut {
@@ -119,9 +119,9 @@ export async function fetchAddressesWithCoordinates(): Promise<DrivewayCurbcut[]
 // Fetch initial random addresses
 export async function fetchInitialAddresses(count: number): Promise<{ addresses: DrivewayCurbcut[], total: number }> {
   try {
-    // Get total count
-    const snapshot = await getDocs(collection(db, 'addresses'));
-    const total = snapshot.size;
+    // Get total count using getCountFromServer
+    const countSnapshot = await getCountFromServer(collection(db, 'addresses'));
+    const total = countSnapshot.data().count;
     
     // Fetch limited number of addresses
     const q = query(
