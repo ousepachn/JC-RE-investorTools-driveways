@@ -34,10 +34,11 @@ export default function Home() {
   const [addressData, setAddressData] = useState<DrivewayCurbcut[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchType, setSearchType] = useState<'address' | 'street_name'>('address');
 
   // Load initial 25 random addresses
   useEffect(() => {
@@ -57,26 +58,26 @@ export default function Home() {
     loadInitialData();
   }, []);
 
-  // Handle search and show all
+  // Handle search
   useEffect(() => {
     async function handleSearch() {
-      if (!searchQuery && !showAll) return;
+      if (!searchQuery) return;
       
-      setLoading(true);
+      setSearchLoading(true);
       try {
-        const addresses = await searchAddresses(searchQuery, showAll);
+        const addresses = await searchAddresses(searchQuery, searchType);
         setAddressData(addresses);
       } catch (err) {
         console.error('Error searching addresses:', err);
         setError('Failed to search addresses. Please try again.');
       } finally {
-        setLoading(false);
+        setSearchLoading(false);
       }
     }
 
     const debounceTimer = setTimeout(handleSearch, 300);
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery, showAll]);
+  }, [searchQuery, searchType]);
 
   // Update map reference with proper type
   const mapRef = useRef<MapRef>(null);
@@ -109,19 +110,58 @@ export default function Home() {
   return (
     <main className="min-h-screen p-4 md:p-8">
       <div className="w-full p-4 bg-white shadow-md">
-        <h1 className="text-4xl font-bold text-center mb-4 text-gray-900">
+        <h1 className="text-4xl font-bold text-center mb-2 text-gray-900">
           Jersey City, Legal Driveway and Curbcut Tracker
         </h1>
         
+        <p className="text-center text-sm text-gray-600 mb-4">
+          Data sourced from{' '}
+          <a 
+            href="https://data.jerseycitynj.gov/explore/dataset/zoning-driveways-and-carports/table/?disjunctive.street_name"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            Jersey City Open Data Portal
+          </a>
+        </p>
+        
         <div className="flex items-center justify-between max-w-3xl mx-auto gap-4">
-          {/* Search Box with Dropdown */}
+          {/* Search Box with Type Toggle */}
           <div className="flex-1 relative">
+            <div className="flex w-full mb-2">
+              <button
+                onClick={() => setSearchType('address')}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-l-md ${
+                  searchType === 'address'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Search by Address
+              </button>
+              <button
+                onClick={() => setSearchType('street_name')}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-r-md ${
+                  searchType === 'street_name'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Search by Street Name
+              </button>
+            </div>
             <input
               type="text"
-              placeholder="Search by street name..."
+              placeholder={
+                searchType === 'street_name'
+                  ? "Enter street name (e.g., ACADEMY)"
+                  : "Enter full address (e.g., 250 ACADEMY ST)"
+              }
               value={searchQuery}
               onChange={(e) => {
-                setSearchQuery(e.target.value);
+                const value = e.target.value.toUpperCase();
+                setSearchQuery(value);
                 setShowSearchResults(true);
               }}
               onFocus={() => setShowSearchResults(true)}
@@ -131,7 +171,9 @@ export default function Home() {
             {/* Search Results Dropdown */}
             {showSearchResults && searchQuery.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {addressData.length > 0 ? (
+                {searchLoading ? (
+                  <div className="px-4 py-2 text-gray-600">Searching...</div>
+                ) : addressData.length > 0 ? (
                   addressData.map((address) => (
                     <button
                       key={address.id}
@@ -150,27 +192,15 @@ export default function Home() {
               </div>
             )}
           </div>
-          
-          {/* Toggle Switch */}
-          <div className="flex items-center gap-2">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showAll}
-                onChange={() => setShowAll(!showAll)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-            <span className="text-sm font-medium text-gray-900">Show All ({totalCount} addresses)</span>
-          </div>
         </div>
         
         {/* Display count of filtered results */}
         <div className="text-center mt-2 text-sm font-medium text-gray-700">
-          Showing {addressData.length} addresses
-          {searchQuery && ` matching "${searchQuery}"`}
-          {!searchQuery && !showAll && ` (randomly selected from ${totalCount} total)`}
+          {searchQuery ? (
+            `Showing ${addressData.length} addresses matching "${searchQuery}"`
+          ) : (
+            `Showing ${addressData.length} addresses (randomly selected from ${totalCount} total)`
+          )}
         </div>
       </div>
 
@@ -209,7 +239,22 @@ export default function Home() {
               anchor="top"
               longitude={popupInfo.coordinates[0]}
               latitude={popupInfo.coordinates[1]}
-              onClose={() => setPopupInfo(null)}
+              onClose={() => {
+                setPopupInfo(null);
+                setSearchQuery('');
+                // Reset map view to Jersey City center
+                if (mapRef.current) {
+                  mapRef.current.flyTo({
+                    center: [-74.0776, 40.7282],
+                    zoom: 13,
+                    duration: 1000
+                  });
+                }
+                // Load initial random addresses
+                fetchInitialAddresses(INITIAL_DISPLAY_COUNT).then(({ addresses }) => {
+                  setAddressData(addresses);
+                });
+              }}
               closeButton={true}
               closeOnClick={false}
               className="custom-popup"

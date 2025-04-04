@@ -145,35 +145,45 @@ export async function fetchInitialAddresses(count: number): Promise<{ addresses:
 }
 
 // Search addresses
-export async function searchAddresses(searchQuery: string, showAll: boolean): Promise<DrivewayCurbcut[]> {
+export async function searchAddresses(
+  searchQuery: string, 
+  searchType: 'address' | 'street_name'
+): Promise<DrivewayCurbcut[]> {
   try {
     let q;
     if (searchQuery) {
-      // Case-insensitive search
-      const searchLower = searchQuery.toLowerCase();
-      const searchUpper = searchQuery.toUpperCase();
+      // Convert search term to uppercase for case-insensitive search
+      const searchTerm = searchQuery.toUpperCase();
       
-      q = query(
-        collection(db, 'addresses'),
-        where('coordinates', '!=', null),
-        orderBy('address'),
-        startAt(searchLower),
-        endAt(searchUpper + '\uf8ff')
-      );
-    } else if (showAll) {
-      q = query(
-        collection(db, 'addresses'),
-        where('coordinates', '!=', null)
-      );
-    } else {
-      return [];
-    }
+      if (searchType === 'street_name') {
+        // Search by street name
+        q = query(
+          collection(db, 'addresses'),
+          orderBy('street_name'),
+          startAt(searchTerm),
+          endAt(searchTerm + '\uf8ff')
+        );
+      } else {
+        // Search by full address
+        q = query(
+          collection(db, 'addresses'),
+          orderBy('address'),
+          startAt(searchTerm),
+          endAt(searchTerm + '\uf8ff')
+        );
+      }
 
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as DrivewayCurbcut));
+      const querySnapshot = await getDocs(q);
+      const results = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as DrivewayCurbcut));
+
+      // Filter out any results without coordinates after the query
+      return results.filter(doc => doc.coordinates != null);
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error searching addresses:', error);
     return [];
