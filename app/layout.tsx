@@ -17,10 +17,9 @@ export const metadata: Metadata = {
   title: "JC Driveway Tracker | Legal Driveway & Curbcut Verification",
   description: "Verify if Jersey City properties have legally approved driveways and curbcuts. Official database for homebuyers and residents.",
   icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/icon.png', type: 'image/png' },
-    ],
+    icon: './icon.png',
+    shortcut: './icon.png',
+    apple: './icon.png',
   },
 };
 

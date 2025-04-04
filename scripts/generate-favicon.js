@@ -9,15 +9,15 @@ async function generateIcons() {
   await sharp(svgBuffer)
     .resize(512, 512)
     .png()
-    .toFile(path.join(process.cwd(), 'public', 'icon.png'));
+    .toFile(path.join(process.cwd(), 'app', 'icon.png'));
 
   // Generate favicon.ico (32x32)
   await sharp(svgBuffer)
     .resize(32, 32)
     .toFormat('png')
-    .toFile(path.join(process.cwd(), 'public', 'favicon.ico'));
+    .toFile(path.join(process.cwd(), 'app', 'favicon.ico'));
 
-  console.log('Icons generated successfully!');
+  console.log('Icons generated successfully in app directory!');
 }
 
 generateIcons().catch(console.error); 
