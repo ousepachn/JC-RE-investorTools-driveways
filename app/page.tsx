@@ -113,6 +113,11 @@ export default function Home() {
         <h1 className="text-4xl font-bold text-center mb-2 text-gray-900">
           Jersey City, Legal Driveway and Curbcut Tracker
         </h1>
+
+        <p className="text-center text-sm text-gray-800 mb-3 max-w-2xl mx-auto leading-relaxed">
+          Search this official database to verify if a property has a legally approved driveway and curbcut. 
+          Perfect for homebuyers' due diligence or checking neighborhood compliance.
+        </p>
         
         <p className="text-center text-sm text-gray-600 mb-4">
           Data sourced from{' '}
