@@ -116,7 +116,7 @@ export default function Home() {
 
         <p className="text-center text-sm text-gray-800 mb-3 max-w-2xl mx-auto leading-relaxed">
           Search this official database to verify if a property has a legally approved driveway and curbcut. 
-          Perfect for homebuyers' due diligence or checking neighborhood compliance.
+          Perfect for homebuyers&apos; due diligence or checking neighborhood compliance.
         </p>
         
         <p className="text-center text-sm text-gray-600 mb-4">
